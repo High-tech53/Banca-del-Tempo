@@ -1,0 +1,432 @@
+// Banca del Tempo — Prisma schema
+// Covers users, profiles, offers, requests, matches, messages, endorsements, flags,
+// notifications, audit log, categories, and sessions.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum AccountKind {
+  OFFERER
+  REQUESTER
+  BOTH
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum OfferStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum RequestStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  WAITING_MATCH
+  MATCHED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum Urgency {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum Frequency {
+  ONE_TIME
+  WEEKLY
+  FLEXIBLE
+}
+
+enum MatchStatus {
+  SUGGESTED
+  PENDING
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum FlagSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FlagStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum NotificationType {
+  MATCH_FOUND
+  MATCH_ACCEPTED
+  MESSAGE_RECEIVED
+  ENDORSEMENT_RECEIVED
+  OFFER_APPROVED
+  REQUEST_APPROVED
+  REMINDER
+  SYSTEM
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String
+  emailVerifiedAt   DateTime?
+  role              UserRole           @default(USER)
+  accountKind       AccountKind        @default(BOTH)
+  acceptedCodeOfCareAt DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  lastSeenAt        DateTime?
+  suspended         Boolean            @default(false)
+
+  profile           Profile?
+  sessions          Session[]
+  offers            Offer[]            @relation("OffererOffers")
+  requests          Request[]          @relation("RequesterRequests")
+  matchesAsOfferer  Match[]            @relation("MatchOfferer")
+  matchesAsRequester Match[]           @relation("MatchRequester")
+  sentMessages      Message[]          @relation("MessageSender")
+  endorsementsGiven Endorsement[]      @relation("EndorsementFrom")
+  endorsementsReceived Endorsement[]   @relation("EndorsementTo")
+  flagsRaised       Flag[]             @relation("FlagReporter")
+  flagsAgainst      Flag[]             @relation("FlagReportedUser")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Profile {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName         String
+  lastName          String
+  showLastName      Boolean     @default(true)
+  bio               String?
+  photoUrl          String?
+  phone             String?
+  birthYear         Int?
+  city              String
+  zipCode           String
+  // PostGIS-ready: lat/lng (use point() in raw queries for ST_DWithin)
+  latitude          Float?
+  longitude         Float?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  // Aggregated reputation cache (refreshed on endorsement)
+  ratingAverage     Float       @default(0)
+  ratingCount       Int         @default(0)
+  helpsCompleted    Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([city])
+  @@index([latitude, longitude])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+// ============================================================
+// TAXONOMY
+// ============================================================
+
+model Category {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  name        String
+  icon        String    // emoji or icon key
+  description String?
+  active      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  offers      Offer[]
+  requests    Request[]
+}
+
+// ============================================================
+// OFFERS & REQUESTS
+// ============================================================
+
+model Offer {
+  id              String      @id @default(uuid())
+  offererId       String
+  offerer         User        @relation("OffererOffers", fields: [offererId], references: [id])
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  title           String
+  description     String
+  frequency       Frequency
+  // JSON array of weekdays: ["MON","TUE",...]
+  availableDays   String[]
+  timeFrom        String?     // "16:00"
+  timeTo          String?     // "19:00"
+  zone            String      // free-text neighborhood
+  city            String
+  zipCode         String
+  latitude        Float?
+  longitude       Float?
+  radiusKm        Float       @default(3)
+  status          OfferStatus @default(PENDING_REVIEW)
+  // For moderation
+  riskScore       Int         @default(0)
+  internalNotes   String?
+  viewCount       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  approvedAt      DateTime?
+  expiresAt       DateTime?
+
+  matches         Match[]
+
+  @@index([offererId])
+  @@index([status])
+  @@index([categoryId])
+  @@index([city])
+  @@index([createdAt])
+}
+
+model Request {
+  id              String        @id @default(uuid())
+  requesterId     String
+  requester       User          @relation("RequesterRequests", fields: [requesterId], references: [id])
+  categoryId      String
+  category        Category      @relation(fields: [categoryId], references: [id])
+  title           String
+  description     String
+  motivation      String?
+  urgency         Urgency       @default(NORMAL)
+  frequency       Frequency
+  preferredDays   String[]
+  timeFrom        String?
+  timeTo          String?
+  zone            String
+  city            String
+  zipCode         String
+  // Address only revealed after match acceptance
+  addressLine     String?
+  latitude        Float?
+  longitude       Float?
+  status          RequestStatus @default(PENDING_REVIEW)
+  riskScore       Int           @default(0)
+  internalNotes   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  approvedAt      DateTime?
+  expiresAt       DateTime?
+
+  matches         Match[]
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([categoryId])
+  @@index([urgency])
+  @@index([city])
+}
+
+// ============================================================
+// MATCHES
+// ============================================================
+
+model Match {
+  id            String       @id @default(uuid())
+  offerId       String
+  offer         Offer        @relation(fields: [offerId], references: [id])
+  requestId     String
+  request       Request      @relation(fields: [requestId], references: [id])
+  offererId     String
+  offerer       User         @relation("MatchOfferer", fields: [offererId], references: [id])
+  requesterId   String
+  requester     User         @relation("MatchRequester", fields: [requesterId], references: [id])
+  score         Int          // 0–100 affinity
+  status        MatchStatus  @default(SUGGESTED)
+  // Who initiated: offerer applied to request, or requester applied to offer
+  initiatedBy   String?
+  acceptedAt    DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  cancellationReason String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  conversation  Conversation?
+  endorsements  Endorsement[]
+
+  @@unique([offerId, requestId])
+  @@index([offererId])
+  @@index([requesterId])
+  @@index([status])
+}
+
+// ============================================================
+// MESSAGING
+// ============================================================
+
+model Conversation {
+  id            String     @id @default(uuid())
+  matchId       String     @unique
+  match         Match      @relation(fields: [matchId], references: [id])
+  lastMessageAt DateTime?
+  createdAt     DateTime   @default(now())
+
+  messages      Message[]
+
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id              String       @id @default(uuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User         @relation("MessageSender", fields: [senderId], references: [id])
+  body            String
+  readAt          DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+// ============================================================
+// REPUTATION
+// ============================================================
+
+model Endorsement {
+  id          String   @id @default(uuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id])
+  fromUserId  String
+  fromUser    User     @relation("EndorsementFrom", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User     @relation("EndorsementTo", fields: [toUserId], references: [id])
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([matchId, fromUserId])
+  @@index([toUserId])
+}
+
+// ============================================================
+// SAFETY
+// ============================================================
+
+model Flag {
+  id              String       @id @default(uuid())
+  reporterId      String
+  reporter        User         @relation("FlagReporter", fields: [reporterId], references: [id])
+  reportedUserId  String?
+  reportedUser    User?        @relation("FlagReportedUser", fields: [reportedUserId], references: [id])
+  reportedOfferId String?
+  reportedRequestId String?
+  reason          String
+  severity        FlagSeverity @default(MEDIUM)
+  status          FlagStatus   @default(OPEN)
+  resolution      String?
+  resolvedAt      DateTime?
+  resolvedById    String?
+  createdAt       DateTime     @default(now())
+
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?
+  // Optional deep link
+  link      String?
+  // JSON payload for richer UI
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+// ============================================================
+// AUDIT
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String   // e.g. "OFFER_APPROVED"
+  entityType String?  // e.g. "Offer"
+  entityId   String?
+  ipAddress  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
