@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  body { background: #FAFAF7; color: #161513; }
+  .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #FAFAF7; }
+::-webkit-scrollbar-thumb { background: #CFCCC1; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #9C988C; }
