@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole, AuthenticatedRequest } from '../middleware/auth.js';
 import { OfferStatus, RequestStatus, FlagStatus, MatchStatus } from '@prisma/client';
-import { findMatchesForOffer, findMatchesForRequest, runFullMatchSweep } from '../lib/matching.js';
+
 
 const router = Router();
 
@@ -85,12 +85,9 @@ router.patch('/offers/:id', async (req: AuthenticatedRequest, res, next) => {
     });
     await audit(req.user!.id, action === 'approve' ? 'OFFER_APPROVED' : 'OFFER_REJECTED', 'Offer', offer.id, { note });
 
-    let matchesCreated = 0;
-    if (action === 'approve') {
-      matchesCreated = (await findMatchesForOffer(offer.id)).length;
-    }
+    
 
-    res.json({ ...offer, matchesCreated });
+    res.json(offer);
   } catch (e) { next(e); }
 });
 
@@ -126,12 +123,9 @@ router.patch('/requests/:id', async (req: AuthenticatedRequest, res, next) => {
     });
     await audit(req.user!.id, action === 'approve' ? 'REQUEST_APPROVED' : 'REQUEST_REJECTED', 'Request', item.id, { note });
 
-    let matchesCreated = 0;
-    if (action === 'approve') {
-      matchesCreated = (await findMatchesForRequest(item.id)).length;
-    }
+    
 
-    res.json({ ...item, matchesCreated });
+    res.json(item);
   } catch (e) { next(e); }
 });
 
@@ -154,13 +148,80 @@ router.get('/matches', async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/matches/recalculate', async (req: AuthenticatedRequest, res, next) => {
+
+const createMatchSchema = z.object({
+  offerId: z.string().uuid(),
+  requestId: z.string().uuid(),
+});
+
+router.post('/matches', async (req: AuthenticatedRequest, res, next) => {
   try {
-    const result = await runFullMatchSweep();
-    await audit(req.user!.id, 'MATCH_SWEEP_RUN', undefined, undefined, result);
-    res.json(result);
+    const { offerId, requestId } = createMatchSchema.parse(req.body);
+
+    const [offer, request] = await Promise.all([
+      prisma.offer.findUnique({ where: { id: offerId } }),
+      prisma.request.findUnique({ where: { id: requestId } }),
+    ]);
+
+    if (!offer) return res.status(404).json({ error: 'Offerta non trovata' });
+    if (!request) return res.status(404).json({ error: 'Richiesta non trovata' });
+
+    if (offer.status !== OfferStatus.APPROVED) {
+      return res.status(400).json({ error: 'L\'offerta deve essere approvata per poter essere abbinata' });
+    }
+    if (request.status !== RequestStatus.WAITING_MATCH && request.status !== RequestStatus.APPROVED) {
+      return res.status(400).json({ error: 'La richiesta deve essere approvata per poter essere abbinata' });
+    }
+    if (offer.offererId === request.requesterId) {
+      return res.status(400).json({ error: 'Un utente non può essere abbinato a se stesso' });
+    }
+
+    let match;
+    try {
+      match = await prisma.match.create({
+        data: {
+          offerId: offer.id,
+          requestId: request.id,
+          offererId: offer.offererId,
+          requesterId: request.requesterId,
+          score: 100, // manual match — admin-confirmed, no algorithmic score
+          status: MatchStatus.SUGGESTED,
+          initiatedBy: req.user!.id,
+        },
+      });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        return res.status(409).json({ error: 'Questa offerta e questa richiesta sono già abbinate' });
+      }
+      throw e;
+    }
+
+    await audit(req.user!.id, 'MATCH_CREATED_MANUAL', 'Match', match.id, { offerId, requestId });
+    res.status(201).json(match);
   } catch (e) { next(e); }
 });
+
+const updateMatchStatusSchema = z.object({
+  status: z.nativeEnum(MatchStatus),
+});
+
+router.patch('/matches/:id', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { status } = updateMatchStatusSchema.parse(req.body);
+    const existing = await prisma.match.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Match non trovato' });
+
+    const data: any = { status };
+    if (status === MatchStatus.ACCEPTED) data.acceptedAt = new Date();
+    if (status === MatchStatus.COMPLETED) data.completedAt = new Date();
+    if (status === MatchStatus.CANCELLED || status === MatchStatus.DECLINED) data.cancelledAt = new Date();
+
+    const match = await prisma.match.update({ where: { id: existing.id }, data });
+    await audit(req.user!.id, `MATCH_STATUS_${status}`, 'Match', match.id);
+    res.json(match);
+  } catch (e) { next(e); }
+});
+
 
 // ============================================================
 // USERS

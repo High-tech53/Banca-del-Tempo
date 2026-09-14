@@ -34,7 +34,7 @@ export default function Home() {
               <Link to="/crea" className="bg-primary-500 hover:bg-primary-600 transition text-white font-semibold px-7 py-4 rounded-xl shadow-soft text-base inline-flex items-center gap-2 group">
                 Offri il tuo tempo <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
               </Link>
-              <Link to="/esplora" className="bg-white hover:bg-ink-50 transition text-primary-600 font-semibold px-7 py-4 rounded-xl border-2 border-primary-500 text-base">
+              <Link to="/crea-richiesta" className="bg-white hover:bg-ink-50 transition text-primary-600 font-semibold px-7 py-4 rounded-xl border-2 border-primary-500 text-base">
                 Chiedi aiuto
               </Link>
             </div>

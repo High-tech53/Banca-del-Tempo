@@ -12,7 +12,7 @@ import offerRoutes from './routes/offers.js';
 import requestRoutes from './routes/requests.js';
 import meRoutes from './routes/me.js';
 import adminRoutes from './routes/admin.js';
-import { runFullMatchSweep } from './lib/matching.js';
+
 
 const app = express();
 
@@ -28,7 +28,7 @@ app.use(morgan('dev'));
 
 // Health
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'vicini-api', time: new Date().toISOString() });
+  res.json({ ok: true, service: 'Banca del Tempo-api', time: new Date().toISOString() });
 });
 
 // API routes
@@ -52,8 +52,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Banca del Tempo API listening on http://localhost:${PORT}`);
 });
 
-// Periodic safety-net sweep: catches any offer/request pairs the
-// trigger-based matching (on approve) might have missed.
-setInterval(() => {
-  runFullMatchSweep().catch(err => console.error('[match-sweep]', err));
-}, 15 * 60 * 1000); // every 15 minutes
