@@ -12,6 +12,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Almeno 8 caratteri'),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  phone: z.string().min(6, 'Numero di telefono non valido').max(20),
   city: z.string().min(1),
   zipCode: z.string().min(3),
   accountKind: z.nativeEnum(AccountKind).default(AccountKind.BOTH),
@@ -59,6 +60,7 @@ router.post('/register', async (req, res, next) => {
           create: {
             firstName: input.firstName,
             lastName: input.lastName,
+            phone: input.phone,
             city: input.city,
             zipCode: input.zipCode,
           },

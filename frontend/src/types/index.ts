@@ -31,6 +31,7 @@ export interface Profile {
   lastName: string;
   showLastName: boolean;
   bio?: string | null;
+  phone?: string | null;
   photoUrl?: string | null;
   city: string;
   zipCode: string;

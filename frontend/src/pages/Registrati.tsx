@@ -10,6 +10,7 @@ interface RegisterForm {
   password: string;
   firstName: string;
   lastName: string;
+  phone: string;
   city: string;
   zipCode: string;
   accountKind: AccountKind;
@@ -66,6 +67,16 @@ export default function Registrati() {
         </div>
 
         <div>
+          <label className="block text-sm font-medium text-ink-700 mb-1.5">Numero di telefono</label>
+          <input
+          type="tel"
+         {...register('phone', { required: true, minLength: 6 })}
+         className="w-full border border-ink-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
+         placeholder="es. 333 1234567"
+         />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-ink-700 mb-1.5">Password</label>
           <input type="password" {...register('password', { required: true, minLength: 8 })} className="w-full border border-ink-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition" placeholder="Almeno 8 caratteri" />
         </div>
@@ -100,7 +111,7 @@ export default function Registrati() {
         </div>
 
         <label className="flex items-start gap-3 text-sm text-ink-600 cursor-pointer">
-          <input type="checkbox" {...register('acceptedCodeOfCare')} className="mt-0.5" />
+          <input type="checkbox" {...register('acceptedCodeOfCare', { required: true })} className="mt-0.5" />
           <span>Accetto il <a href="#" className="text-primary-600 font-medium">Codice di Cura</a> e i <a href="#" className="text-primary-600 font-medium">Termini di servizio</a>.</span>
         </label>
 

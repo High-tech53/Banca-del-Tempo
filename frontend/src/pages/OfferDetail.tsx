@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Repeat, BadgeCheck, MessageCircle, HandHelping } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Repeat, BadgeCheck, MessageCircle, HandHelping, Phone } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Offer } from '../types';
 import { useAuthStore } from '../store/auth';
@@ -113,9 +113,14 @@ export default function OfferDetail() {
                 </div>
               ) : (
                 <>
+                {profile?.phone && (
+                  <div className="mt-6 flex items-center gap-2 text-sm text-ink-700 bg-ink-50 rounded-xl px-4 py-3">
+                    <Phone className="w-4 h-4 text-ink-500 flex-shrink-0" /> {profile.phone}
+                  </div>
+                )}
                   <Link
                     to={`/crea-richiesta?categoria=${offer.category.slug}`}
-                    className="w-full bg-primary-500 hover:bg-primary-600 transition text-white font-semibold py-4 rounded-xl mt-6 shadow-soft flex items-center justify-center gap-2"
+                    className={`w-full bg-primary-500 hover:bg-primary-600 transition text-white font-semibold py-4 rounded-xl shadow-soft flex items-center justify-center gap-2 ${profile?.phone ? 'mt-3' : 'mt-6'}`}
                   >
                     <HandHelping className="w-5 h-5" /> Chiedi aiuto
                   </Link>

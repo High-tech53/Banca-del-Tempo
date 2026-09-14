@@ -90,6 +90,7 @@ router.get('/:id', optionalAuth, async (req: AuthenticatedRequest, res, next) =>
                 lastName: true,
                 showLastName: true,
                 photoUrl: true,
+                phone: true,
                 city: true,
                 ratingAverage: true,
                 ratingCount: true,
@@ -109,6 +110,11 @@ router.get('/:id', optionalAuth, async (req: AuthenticatedRequest, res, next) =>
     // Anyone who isn't the owner or a moderator only gets to see APPROVED offers
     if (offer.status !== 'APPROVED' && !isOwner && !isModerator) {
       return res.status(404).json({ error: 'Offerta non trovata' });
+    }
+
+    // Phone number is only visible to logged-in users, not anonymous visitors
+    if (offer.offerer.profile && !req.user) {
+      (offer.offerer.profile as any).phone = null;
     }
 
     // Only count a view once we know the visitor is actually allowed to see it
