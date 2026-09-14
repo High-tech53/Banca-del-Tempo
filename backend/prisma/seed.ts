@@ -43,6 +43,7 @@ async function main() {
         create: {
           firstName: 'Marco',
           lastName: 'Rossi',
+          phone: '+39 333 1234567',
           bio: 'Professore di matematica in pensione. Mi piace aiutare i ragazzi a superare la paura dei numeri.',
           city: 'Roma',
           zipCode: '00153',
@@ -70,6 +71,7 @@ async function main() {
         create: {
           firstName: 'Sofia',
           lastName: 'Marini',
+          phone: '+39 333 7654321',
           bio: 'Mamma con un bambino piccolo, a volte mi serve una mano.',
           city: 'Roma',
           zipCode: '00153',
@@ -97,6 +99,7 @@ async function main() {
         create: {
           firstName: 'Giulia',
           lastName: 'Verdi',
+          phone: '+39 333 9876543',
           bio: 'Moderatrice Vicini · adoro la community.',
           city: 'Roma',
           zipCode: '00152',
