@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { ArrowLeftRight, Link2, Check, X, Play, RotateCcw } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageHeader, Badge, Avatar } from './ui';
+import { Skeleton, MatchGridSkeleton } from '../../components/Skeleton';
+import { Spinner } from '../../components/Spinner';
 
 interface AdminOffer {
   id: string; title: string; zone: string; createdAt: string;
@@ -30,6 +32,16 @@ const STATUS_TONE: Record<string, 'green' | 'amber' | 'blue' | 'red' | 'gray'> =
   SUGGESTED: 'amber', ACCEPTED: 'green', IN_PROGRESS: 'blue',
   COMPLETED: 'green', DECLINED: 'red', CANCELLED: 'gray',
 };
+
+/** Three grey rows shown inside the offer/request pickers while they load. */
+function PickerSkeleton() {
+  return (
+    <div role="status" aria-busy="true" className="space-y-2">
+      <span className="sr-only">Caricamento…</span>
+      {[0, 1, 2].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+    </div>
+  );
+}
 
 export default function AdminMatch() {
   const qc = useQueryClient();
@@ -92,12 +104,14 @@ export default function AdminMatch() {
         {/* Offers column */}
         <div className="bg-white rounded-2xl border border-ink-200 p-4">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-semibold">
-              {offers.length}
-            </span>
+            {!loadingOffers && (
+              <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-semibold">
+                {offers.length}
+              </span>
+            )}
             Offerte approvate
           </h3>
-          {loadingOffers && <p className="text-sm text-ink-400">Caricamento…</p>}
+          {loadingOffers && <PickerSkeleton />}
           {!loadingOffers && offers.length === 0 && (
             <p className="text-sm text-ink-400">Nessuna offerta approvata disponibile.</p>
           )}
@@ -133,20 +147,23 @@ export default function AdminMatch() {
             disabled={!selectedOfferId || !selectedRequestId || createMatch.isPending}
             className="bg-primary-500 hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed transition text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-soft flex items-center gap-2 whitespace-nowrap"
           >
-            <Link2 className="w-4 h-4" />
-            {createMatch.isPending ? 'Creazione…' : 'Crea Match'}
+            {createMatch.isPending
+              ? <><Spinner className="w-4 h-4" /> Creazione…</>
+              : <><Link2 className="w-4 h-4" /> Crea Match</>}
           </button>
         </div>
 
         {/* Requests column */}
         <div className="bg-white rounded-2xl border border-ink-200 p-4">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <span className="text-xs bg-sage-50 text-sage-700 px-2 py-0.5 rounded-full font-semibold">
-              {requests.length}
-            </span>
+            {!loadingRequests && (
+              <span className="text-xs bg-sage-50 text-sage-700 px-2 py-0.5 rounded-full font-semibold">
+                {requests.length}
+              </span>
+            )}
             Richieste in attesa di match
           </h3>
-          {loadingRequests && <p className="text-sm text-ink-400">Caricamento…</p>}
+          {loadingRequests && <PickerSkeleton />}
           {!loadingRequests && requests.length === 0 && (
             <p className="text-sm text-ink-400">Nessuna richiesta in attesa disponibile.</p>
           )}
@@ -174,9 +191,11 @@ export default function AdminMatch() {
       </div>
 
       {/* Existing matches */}
-      <h2 className="font-display text-2xl font-semibold mb-4">Match creati ({matches.length})</h2>
+      <h2 className="font-display text-2xl font-semibold mb-4">
+        Match creati{!loadingMatches && ` (${matches.length})`}
+      </h2>
 
-      {loadingMatches && <p className="text-ink-500">Caricamento…</p>}
+      {loadingMatches && <MatchGridSkeleton />}
       {!loadingMatches && matches.length === 0 && (
         <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">
           <p className="text-ink-500">Nessun match creato ancora. Seleziona un'offerta e una richiesta qui sopra.</p>

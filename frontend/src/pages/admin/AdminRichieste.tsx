@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageHeader, TableShell, Badge, statusTone, statusLabel, Avatar } from './ui';
+import { PageLoader } from '../../components/Spinner';
 
 interface AdminRequest {
   id: string; title: string; status: string; urgency: string; zone: string; createdAt: string;
@@ -53,7 +54,7 @@ export default function AdminRichieste() {
         ))}
       </div>
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> : (
+      {isLoading ? <PageLoader /> : (
         <TableShell headers={['Titolo', 'Utente', 'Urgenza', 'Stato', 'Data', 'Azioni']}>
           {items.length === 0 && (
             <tr><td colSpan={6} className="px-4 py-10 text-center text-ink-400">Nessuna richiesta con questo stato.</td></tr>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import type { User, AccountKind } from '../types';
+import { Spinner } from '../components/Spinner';
 
 interface RegisterForm {
   email: string;
@@ -118,7 +119,7 @@ export default function Registrati() {
         {error && <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>}
 
         <button type="submit" disabled={isSubmitting} className="w-full bg-primary-500 hover:bg-primary-600 disabled:opacity-60 transition text-white font-semibold py-3.5 rounded-xl shadow-soft">
-          {isSubmitting ? 'Creazione…' : 'Crea account'}
+          {isSubmitting ? <><Spinner className="w-4 h-4"/>Creazione…</>  : 'Crea account'}
         </button>
       </form>
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import type { HelpRequest } from '../types';
+import { ItemGridSkeleton } from '../components/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING_REVIEW: 'In revisione',
@@ -37,7 +38,7 @@ export default function MieRichieste() {
         </Link>
       </div>
 
-      {isLoading && <div className="text-ink-500">Caricamento…</div>}
+      {isLoading && <ItemGridSkeleton />}
 
       {!isLoading && requests.length === 0 && (
         <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">

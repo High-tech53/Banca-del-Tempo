@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { PageHeader, KpiCard } from './ui';
+import { AdminDashboardSkeleton } from '../../components/Skeleton';
 
 interface Stats {
   pendingReview: number;
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
     queryFn: async () => (await api.get('/admin/stats')).data,
   });
 
-  if (isLoading) return <div className="text-ink-500">Caricamento…</div>;
+  if (isLoading) return <AdminDashboardSkeleton />;
 
   const days = stats?.submissionsByDay ?? [];
   const maxCount = Math.max(1, ...days.map(d => d.count));

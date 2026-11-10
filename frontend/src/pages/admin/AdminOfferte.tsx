@@ -4,6 +4,7 @@ import { Check, X, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { PageHeader, TableShell, Badge, statusTone, statusLabel, Avatar } from './ui';
+import { PageLoader } from '../../components/Spinner';
 
 interface AdminOffer {
   id: string; title: string; status: string; zone: string; createdAt: string;
@@ -50,7 +51,7 @@ export default function AdminOfferte() {
         ))}
       </div>
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> : (
+      {isLoading ? <PageLoader /> : (
         <TableShell headers={['Titolo', 'Categoria', 'Utente', 'Zona', 'Stato', 'Data', 'Azioni']}>
           {offers.length === 0 && (
             <tr><td colSpan={7} className="px-4 py-10 text-center text-ink-400">Nessuna offerta con questo stato.</td></tr>

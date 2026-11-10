@@ -4,11 +4,12 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import type { Offer } from '../types';
 import { Flame, Award, ArrowRight } from 'lucide-react';
+import { DashboardOffersSkeleton } from '../components/Skeleton';
 
 export default function Dashboard() {
   const user = useAuthStore(s => s.user);
 
-  const { data: myOffers = [] } = useQuery<Offer[]>({
+  const { data: myOffers = [], isLoading } = useQuery<Offer[]>({
     queryKey: ['my-offers'],
     queryFn: async () => (await api.get<Offer[]>('/offers/mine/list')).data,
   });
@@ -23,7 +24,8 @@ export default function Dashboard() {
           {greeting}, {user?.profile?.firstName} <span className="text-3xl">🌱</span>
         </h1>
         <p className="text-ink-600 mt-2">
-          {user?.profile?.helpsCompleted ?? 0} aiuti completati · {myOffers.length} offerte attive
+          {user?.profile?.helpsCompleted ?? 0} aiuti completati
+          {!isLoading && ` · ${myOffers.length} offerte attive`}
         </p>
       </div>
 
@@ -62,7 +64,9 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {myOffers.length === 0 ? (
+        {isLoading ? (
+          <DashboardOffersSkeleton />
+        ) : myOffers.length === 0 ? (
           <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">
             <p className="text-ink-500">Non hai ancora creato un'offerta.</p>
             <Link to="/crea" className="inline-block mt-4 text-primary-600 font-semibold">Crea la prima →</Link>

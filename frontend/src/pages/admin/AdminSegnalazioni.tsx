@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PageHeader, TableShell, Badge, statusTone, statusLabel, Avatar } from './ui';
+import { PageLoader } from '../../components/Spinner';
 
 interface AdminFlag {
   id: string; reason: string; severity: string; status: string; createdAt: string;
@@ -35,7 +36,7 @@ export default function AdminSegnalazioni() {
     <>
       <PageHeader title="Segnalazioni" subtitle={`${flags.filter(f => f.status === 'OPEN').length} aperte di ${flags.length} totali`} />
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> :
+      {isLoading ? <PageLoader /> :
         flags.length === 0 ? (
           <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">
             <p className="text-ink-500">Nessuna segnalazione. Ottimo segno per la community. 💚</p>

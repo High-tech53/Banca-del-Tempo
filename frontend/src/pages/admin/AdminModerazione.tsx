@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Check, X, Edit3 } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageHeader, Badge } from './ui';
+import { ModerationSkeleton } from '../../components/Skeleton';
+import { Spinner } from '../../components/Spinner';
 
 interface PendingOffer {
   id: string; title: string; description: string; zone: string; createdAt: string; riskScore: number;
@@ -20,25 +22,19 @@ type QueueItem =
   | ({ kind: 'request' } & PendingRequest);
 
 export default function AdminModerazione() {
+  // ---- 1. ALL hooks first (never put a `return` above any of these) ----
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
-  const { data: offers = [] } = useQuery<PendingOffer[]>({
+  const { data: offers = [], isLoading: loadingOffers } = useQuery<PendingOffer[]>({
     queryKey: ['admin-offers', 'PENDING_REVIEW'],
     queryFn: async () => (await api.get('/admin/offers', { params: { status: 'PENDING_REVIEW' } })).data,
   });
-  const { data: requests = [] } = useQuery<PendingRequest[]>({
+  const { data: requests = [], isLoading: loadingRequests } = useQuery<PendingRequest[]>({
     queryKey: ['admin-requests', 'PENDING_REVIEW'],
     queryFn: async () => (await api.get('/admin/requests', { params: { status: 'PENDING_REVIEW' } })).data,
   });
-
-  const queue: QueueItem[] = [
-    ...offers.map(o => ({ kind: 'offer' as const, ...o })),
-    ...requests.map(r => ({ kind: 'request' as const, ...r })),
-  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  const selected = queue.find(i => i.id === selectedId) ?? queue[0] ?? null;
 
   const decide = useMutation({
     mutationFn: async ({ item, action }: { item: QueueItem; action: 'approve' | 'reject' }) => {
@@ -55,11 +51,30 @@ export default function AdminModerazione() {
     },
   });
 
+  // ---- 2. Plain calculations (not hooks) ----
+  const queue: QueueItem[] = [
+    ...offers.map(o => ({ kind: 'offer' as const, ...o })),
+    ...requests.map(r => ({ kind: 'request' as const, ...r })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const selected = queue.find(i => i.id === selectedId) ?? queue[0] ?? null;
+
   const userName = (item: QueueItem) =>
     item.kind === 'offer'
       ? `${item.offerer.profile?.firstName ?? ''} ${item.offerer.profile?.lastName ?? ''}`
       : `${item.requester.profile?.firstName ?? ''} ${item.requester.profile?.lastName ?? ''}`;
 
+  // ---- 3. Loading state: AFTER all hooks ----
+  if (loadingOffers || loadingRequests) {
+    return (
+      <>
+        <PageHeader title="Moderazione" />
+        <ModerationSkeleton />
+      </>
+    );
+  }
+
+  // ---- 4. Normal page ----
   return (
     <>
       <PageHeader title="Moderazione" subtitle={`${queue.length} elementi in coda`} />
@@ -132,12 +147,20 @@ export default function AdminModerazione() {
                   onClick={() => decide.mutate({ item: selected, action: 'approve' })}
                   disabled={decide.isPending}
                   className="flex-1 bg-sage-600 hover:bg-sage-700 disabled:opacity-50 transition text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
-                ><Check className="w-4 h-4" /> Approva</button>
+                >
+                  {decide.isPending && decide.variables?.action === 'approve'
+                    ? <Spinner className="w-4 h-4" />
+                    : <Check className="w-4 h-4" />} Approva
+                </button>
                 <button
                   onClick={() => decide.mutate({ item: selected, action: 'reject' })}
                   disabled={decide.isPending}
                   className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 transition text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
-                ><X className="w-4 h-4" /> Rifiuta</button>
+                >
+                  {decide.isPending && decide.variables?.action === 'reject'
+                    ? <Spinner className="w-4 h-4" />
+                    : <X className="w-4 h-4" />} Rifiuta
+                </button>
               </div>
             </div>
           )}

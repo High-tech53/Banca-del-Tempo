@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PageHeader, statusLabel } from './ui';
+import { AdminAnalyticsSkeleton } from '../../components/Skeleton';
 
 interface Analytics {
   byCategory: { name: string; icon: string; _count: { offers: number; requests: number } }[];
@@ -14,7 +15,7 @@ export default function AdminAnalytics() {
     queryFn: async () => (await api.get('/admin/analytics')).data,
   });
 
-  if (isLoading) return <div className="text-ink-500">Caricamento…</div>;
+  if (isLoading) return <AdminAnalyticsSkeleton />;
 
   const cats = data?.byCategory ?? [];
   const maxCat = Math.max(1, ...cats.map(c => c._count.offers + c._count.requests));

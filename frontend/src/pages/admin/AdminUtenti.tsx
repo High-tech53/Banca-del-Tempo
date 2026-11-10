@@ -4,6 +4,7 @@ import { Search, Ban, RotateCcw } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth';
 import { PageHeader, TableShell, Badge, Avatar } from './ui';
+import { PageLoader } from '../../components/Spinner';
 
 interface AdminUser {
   id: string; email: string; role: string; accountKind: string; suspended: boolean; createdAt: string;
@@ -41,7 +42,7 @@ export default function AdminUtenti() {
         />
       </div>
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> : (
+      {isLoading ? <PageLoader /> : (
         <TableShell headers={['Utente', 'Ruolo', 'Verifica', 'Aiuti', 'Flag', 'Iscritto', 'Azioni']}>
           {users.map(u => (
             <tr key={u.id} className={`border-t border-ink-100 hover:bg-ink-50 transition ${u.suspended ? 'opacity-60' : ''}`}>

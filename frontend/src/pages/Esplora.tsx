@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, MapPin } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Category, Offer, Paginated } from '../types';
 import { useState } from 'react';
+import { OfferGridSkeleton } from '../components/Skeleton';
+import { Spinner } from '../components/Spinner';
 
 export default function Esplora() {
   const [params, setParams] = useSearchParams();
@@ -15,7 +17,7 @@ export default function Esplora() {
     queryFn: async () => (await api.get<Category[]>('/categories')).data,
   });
 
-  const { data: offers, isLoading } = useQuery({
+  const { data: offers, isLoading, isFetching, isPlaceholderData } = useQuery({
     queryKey: ['offers', activeCategory, search],
     queryFn: async () => {
       const res = await api.get<Paginated<Offer>>('/offers', {
@@ -23,6 +25,8 @@ export default function Esplora() {
       });
       return res.data;
     },
+    // Keep showing the old cards while a new filter/search loads (no skeleton flash on every keystroke)
+    placeholderData: keepPreviousData,
   });
 
   function setCategory(slug: string) {
@@ -55,7 +59,9 @@ export default function Esplora() {
             >{c.icon} {c.name}</button>
           ))}
           <div className="ml-auto flex items-center gap-2 bg-ink-50 rounded-lg px-3 py-2 min-w-[220px]">
-            <Search className="w-4 h-4 text-ink-400" />
+            {isFetching && !isLoading
+              ? <Spinner className="w-4 h-4 text-ink-400" />
+              : <Search className="w-4 h-4 text-ink-400" />}
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -67,13 +73,15 @@ export default function Esplora() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
-        {isLoading && <SkeletonGrid />}
-        {!isLoading && offers?.data.length === 0 && (
+        {isLoading && <OfferGridSkeleton />}
+
+        {!isLoading && offers && offers.data.length === 0 && (
           <div className="text-center py-20 text-ink-500">Nessuna offerta trovata. Prova a cambiare filtro.</div>
         )}
-        {!isLoading && offers?.data.length! > 0 && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {offers!.data.map(o => <OfferCard key={o.id} offer={o} />)}
+
+        {!isLoading && offers && offers.data.length > 0 && (
+          <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}>
+            {offers.data.map(o => <OfferCard key={o.id} offer={o} />)}
           </div>
         )}
       </div>
@@ -116,22 +124,5 @@ function OfferCard({ offer }: { offer: Offer }) {
         </div>
       </div>
     </Link>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-ink-200 overflow-hidden animate-pulse">
-          <div className="h-32 bg-ink-100" />
-          <div className="p-5 space-y-3">
-            <div className="h-4 bg-ink-100 rounded w-3/4" />
-            <div className="h-3 bg-ink-100 rounded w-full" />
-            <div className="h-3 bg-ink-100 rounded w-5/6" />
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

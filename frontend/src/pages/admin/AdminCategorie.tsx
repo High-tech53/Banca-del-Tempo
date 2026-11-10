@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageHeader, Badge } from './ui';
+import { CategoryGridSkeleton } from '../../components/Skeleton';
 
 interface AdminCategory {
   id: string; slug: string; name: string; icon: string; active: boolean; sortOrder: number;
@@ -81,7 +82,7 @@ export default function AdminCategorie() {
         </div>
       )}
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> : (
+      {isLoading ? <CategoryGridSkeleton /> : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {cats.map(c => (
             <div key={c.id} className={`bg-white rounded-2xl border border-ink-200 p-5 ${!c.active ? 'opacity-50' : ''}`}>

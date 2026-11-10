@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import type { User } from '../types';
+import { Spinner } from '../components/Spinner';
 
 interface LoginForm { email: string; password: string; }
 
@@ -56,7 +57,7 @@ export default function Accedi() {
           disabled={isSubmitting}
           className="w-full bg-primary-500 hover:bg-primary-600 disabled:opacity-60 transition text-white font-semibold py-3.5 rounded-xl shadow-soft"
         >
-          {isSubmitting ? 'Accesso in corso…' : 'Accedi'}
+          {isSubmitting ? <><Spinner className="w-4 h-4" /> Accesso in corso…</> : 'Accedi'}
         </button>
       </form>
 

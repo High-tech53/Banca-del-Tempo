@@ -1,11 +1,12 @@
 import { BadgeCheck, MapPin, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { ProfileSkeleton } from '../components/Skeleton';
 
 export default function Profilo() {
   const user = useAuthStore(s => s.user);
   const p = user?.profile;
 
-  if (!user || !p) return <div className="max-w-4xl mx-auto px-6 py-10 text-ink-500">Caricamento…</div>;
+  if (!user || !p) return <ProfileSkeleton />;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">

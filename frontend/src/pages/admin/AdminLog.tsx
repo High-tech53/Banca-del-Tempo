@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PageHeader, TableShell, Avatar } from './ui';
+import { PageLoader } from '../../components/Spinner';
 
 interface AuditEntry {
   id: string; action: string; entityType: string | null; entityId: string | null; createdAt: string;
@@ -31,7 +32,7 @@ export default function AdminLog() {
     <>
       <PageHeader title="Log attività" subtitle="Registro delle azioni amministrative — ultime 100" />
 
-      {isLoading ? <div className="text-ink-500">Caricamento…</div> :
+      {isLoading ? <PageLoader /> :
         logs.length === 0 ? (
           <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">
             <p className="text-ink-500">Nessuna azione registrata ancora. Le azioni appariranno qui quando approvi/rifiuti contenuti o gestisci utenti.</p>

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import type { Category, Frequency, Offer } from '../types';
+import { Spinner } from '../components/Spinner';
 
 const DAYS = [
   { code: 'MON', label: 'L' },
@@ -146,8 +147,8 @@ export default function Crea() {
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-200">
           <button type="button" onClick={() => navigate(-1)} className="text-ink-700 font-medium px-6 py-3 rounded-xl hover:bg-ink-50 transition">Annulla</button>
-          <button type="submit" disabled={isSubmitting} className="bg-primary-500 hover:bg-primary-600 disabled:opacity-60 transition text-white font-semibold px-8 py-3 rounded-xl shadow-soft">
-            {isSubmitting ? 'Salvataggio…' : 'Pubblica offerta'}
+          <button type="submit" disabled={mutation.isPending} className="flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 transition text-white font-semibold px-8 py-3 rounded-xl shadow-soft">
+            {mutation.isPending ? <><Spinner className="w-4 h-4" /> Salvataggio…</>  : 'Pubblica offerta'}
           </button>
         </div>
       </form>

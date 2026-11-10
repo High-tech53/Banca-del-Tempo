@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Offer } from '../types';
+import { ItemGridSkeleton } from '../components/Skeleton';
 
 export default function MieOfferte() {
   const { data: offers = [], isLoading } = useQuery<Offer[]>({
@@ -22,7 +23,7 @@ export default function MieOfferte() {
         </Link>
       </div>
 
-      {isLoading && <div className="text-ink-500">Caricamento…</div>}
+      {isLoading && <ItemGridSkeleton />}
 
       {!isLoading && offers.length === 0 && (
         <div className="bg-white rounded-2xl border border-ink-200 p-12 text-center">

@@ -1,25 +1,95 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Repeat, BadgeCheck, MessageCircle, HandHelping, Phone } from 'lucide-react';
+import { isAxiosError } from 'axios';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft, MapPin, Clock, Repeat, BadgeCheck, MessageCircle, HandHelping,
+  Search, RefreshCw, WifiOff,
+} from 'lucide-react';
 import { api } from '../lib/api';
 import type { Offer } from '../types';
 import { useAuthStore } from '../store/auth';
+import { OfferDetailSkeleton } from '../components/Skeleton';
+import ErrorState from '../components/ErrorState';
 
 const DAY_LABELS: Record<string, string> = { MON:'LUN', TUE:'MAR', WED:'MER', THU:'GIO', FRI:'VEN', SAT:'SAB', SUN:'DOM' };
 const ALL_DAYS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+
+function OfferNotFound() {
+  const navigate = useNavigate();
+  return (
+    <ErrorState
+      code="404"
+      title="Offerta non trovata"
+      message="Questa offerta potrebbe essere stata ritirata, non essere ancora stata approvata, oppure il link non è corretto."
+      actions={
+        <>
+          <Link
+            to="/esplora"
+            className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 transition text-white font-semibold px-6 py-3 rounded-xl shadow-soft"
+          >
+            <Search className="w-4 h-4" /> Esplora le offerte
+          </Link>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 bg-white hover:bg-ink-50 transition text-ink-700 font-medium px-6 py-3 rounded-xl border border-ink-200"
+          >
+            <ArrowLeft className="w-4 h-4" /> Torna indietro
+          </button>
+        </>
+      }
+    />
+  );
+}
 
 export default function OfferDetail() {
   const { id } = useParams();
   const user = useAuthStore(s => s.user);
 
-  const { data: offer, isLoading } = useQuery<Offer>({
+  const { data: offer, isLoading, isError, error, refetch, isFetching } = useQuery<Offer>({
     queryKey: ['offer', id],
     queryFn: async () => (await api.get<Offer>(`/offers/${id}`)).data,
     enabled: !!id,
+    // A 404 will never fix itself, so don't retry it. Retry other errors once.
+    retry: (failureCount, err) => {
+      if (isAxiosError(err) && err.response?.status === 404) return false;
+      return failureCount < 1;
+    },
   });
 
-  if (isLoading) return <div className="max-w-4xl mx-auto px-6 py-10 text-ink-500">Caricamento…</div>;
-  if (!offer) return <div className="max-w-4xl mx-auto px-6 py-10 text-ink-500">Offerta non trovata.</div>;
+  if (isLoading) return <OfferDetailSkeleton />;
+
+  if (isError) {
+    if (isAxiosError(error) && error.response?.status === 404) return <OfferNotFound />;
+    // Network problem, server down, etc.
+    return (
+      <ErrorState
+        icon={WifiOff}
+        title="Non riusciamo a caricare l'offerta"
+        message="Controlla la connessione e riprova. Se il problema continua, torna tra qualche minuto."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 transition text-white font-semibold px-6 py-3 rounded-xl shadow-soft"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> Riprova
+            </button>
+            <Link
+              to="/esplora"
+              className="inline-flex items-center gap-2 bg-white hover:bg-ink-50 transition text-ink-700 font-medium px-6 py-3 rounded-xl border border-ink-200"
+            >
+              <Search className="w-4 h-4" /> Esplora le offerte
+            </Link>
+          </>
+        }
+      />
+    );
+  }
+
+  if (!offer) return <OfferNotFound />;
 
   const profile = offer.offerer.profile;
   const displayName = `${profile?.firstName} ${profile?.showLastName ? profile.lastName : profile?.lastName?.[0] + '.'}`;
@@ -113,14 +183,9 @@ export default function OfferDetail() {
                 </div>
               ) : (
                 <>
-                {profile?.phone && (
-                  <div className="mt-6 flex items-center gap-2 text-sm text-ink-700 bg-ink-50 rounded-xl px-4 py-3">
-                    <Phone className="w-4 h-4 text-ink-500 flex-shrink-0" /> {profile.phone}
-                  </div>
-                )}
                   <Link
                     to={`/crea-richiesta?categoria=${offer.category.slug}`}
-                    className={`w-full bg-primary-500 hover:bg-primary-600 transition text-white font-semibold py-4 rounded-xl shadow-soft flex items-center justify-center gap-2 ${profile?.phone ? 'mt-3' : 'mt-6'}`}
+                    className="w-full bg-primary-500 hover:bg-primary-600 transition text-white font-semibold py-4 rounded-xl mt-6 shadow-soft flex items-center justify-center gap-2"
                   >
                     <HandHelping className="w-5 h-5" /> Chiedi aiuto
                   </Link>
